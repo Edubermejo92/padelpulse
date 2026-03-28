@@ -64,11 +64,12 @@ const defaultState = () => ({
     gameTime:0, timerRunning:true,
     betweenPoints:false, betweenTimer:0, betweenMax:20,
     soundEnabled:true, brightness:100, voiceActive:false,
+    theme:'neon',
     currentView:'home',
     history:[], activityLog:[],
     faults:{ A:{doubleFault:0,footFault:0,warning:0}, B:{doubleFault:0,footFault:0,warning:0} },
     heartRate:0, calories:0,
-    momentum:[] // [{team:'A'|'B', time, set, game}]
+    momentum:[]
 });
 
 let S = loadState();
@@ -82,8 +83,122 @@ function loadState(){
 function saveState(){ try{ localStorage.setItem('pp_state_v3',JSON.stringify(S)); }catch(e){} }
 
 // ═══════════════════════════════════════════
-// TIMER
+// THEMES
 // ═══════════════════════════════════════════
+const THEMES = {
+    neon: {
+        name:'Neon Verde', emoji:'🟢',
+        bg:'#070707', surface:'#101010', surface2:'#181818',
+        border:'#1e1e1e', text:'#f0f0f0', muted:'#555',
+        primary:'#00fd87', primaryGlow:'rgba(0,253,135,0.3)',
+        accent:'#7ee6ff', error:'#ff716c',
+        btnA:'#00fd87', btnAText:'#003a1f',
+        btnB:'#1e1e1e', btnBText:'#f0f0f0',
+        scoreActive:'#00fd87', scoreInactive:'rgba(240,240,240,0.25)',
+        font:"'Lexend',sans-serif"
+    },
+    fuego: {
+        name:'Fuego', emoji:'🔥',
+        bg:'#0a0400', surface:'#160800', surface2:'#1f0c00',
+        border:'#2a1200', text:'#fff5ee', muted:'#7a4020',
+        primary:'#ff6b1a', primaryGlow:'rgba(255,107,26,0.35)',
+        accent:'#ffcc44', error:'#ff4444',
+        btnA:'#ff6b1a', btnAText:'#1a0000',
+        btnB:'#1f0c00', btnBText:'#fff5ee',
+        scoreActive:'#ff6b1a', scoreInactive:'rgba(255,245,238,0.2)',
+        font:"'Lexend',sans-serif"
+    },
+    hielo: {
+        name:'Hielo', emoji:'❄️',
+        bg:'#020810', surface:'#060f1c', surface2:'#0c1828',
+        border:'#0e2040', text:'#e8f4ff', muted:'#3a6080',
+        primary:'#38d4ff', primaryGlow:'rgba(56,212,255,0.3)',
+        accent:'#a0e8ff', error:'#ff6b8a',
+        btnA:'#38d4ff', btnAText:'#001a26',
+        btnB:'#0c1828', btnBText:'#e8f4ff',
+        scoreActive:'#38d4ff', scoreInactive:'rgba(232,244,255,0.2)',
+        font:"'Lexend',sans-serif"
+    },
+    clasico: {
+        name:'Clásico', emoji:'🎾',
+        bg:'#0d1200', surface:'#151a00', surface2:'#1e2500',
+        border:'#2a3400', text:'#f5f0e0', muted:'#6a7040',
+        primary:'#c8e840', primaryGlow:'rgba(200,232,64,0.3)',
+        accent:'#f0d060', error:'#ff6060',
+        btnA:'#c8e840', btnAText:'#1a2000',
+        btnB:'#1e2500', btnBText:'#f5f0e0',
+        scoreActive:'#c8e840', scoreInactive:'rgba(245,240,224,0.2)',
+        font:"'Lexend',sans-serif"
+    },
+    noche: {
+        name:'Noche', emoji:'🌙',
+        bg:'#08080f', surface:'#10101a', surface2:'#18182a',
+        border:'#20203a', text:'#e8e8ff', muted:'#4a4a70',
+        primary:'#a070ff', primaryGlow:'rgba(160,112,255,0.3)',
+        accent:'#ff80cc', error:'#ff5566',
+        btnA:'#a070ff', btnAText:'#0a0020',
+        btnB:'#18182a', btnBText:'#e8e8ff',
+        scoreActive:'#a070ff', scoreInactive:'rgba(232,232,255,0.2)',
+        font:"'Lexend',sans-serif"
+    },
+    oro: {
+        name:'Oro', emoji:'🏆',
+        bg:'#080600', surface:'#120e00', surface2:'#1a1400',
+        border:'#2a2000', text:'#fff8e0', muted:'#806a20',
+        primary:'#ffd700', primaryGlow:'rgba(255,215,0,0.3)',
+        accent:'#ffaa30', error:'#ff5555',
+        btnA:'#ffd700', btnAText:'#1a1000',
+        btnB:'#1a1400', btnBText:'#fff8e0',
+        scoreActive:'#ffd700', scoreInactive:'rgba(255,248,224,0.2)',
+        font:"'Lexend',sans-serif"
+    }
+};
+
+function applyTheme(id){
+    const t = THEMES[id] || THEMES.neon;
+    const r = document.documentElement.style;
+    r.setProperty('--t-bg',      t.bg);
+    r.setProperty('--t-surf',    t.surface);
+    r.setProperty('--t-surf2',   t.surface2);
+    r.setProperty('--t-border',  t.border);
+    r.setProperty('--t-text',    t.text);
+    r.setProperty('--t-muted',   t.muted);
+    r.setProperty('--t-primary', t.primary);
+    r.setProperty('--t-glow',    t.primaryGlow);
+    r.setProperty('--t-accent',  t.accent);
+    r.setProperty('--t-error',   t.error);
+    r.setProperty('--t-btnA',    t.btnA);
+    r.setProperty('--t-btnAt',   t.btnAText);
+    r.setProperty('--t-btnB',    t.btnB);
+    r.setProperty('--t-btnBt',   t.btnBText);
+    r.setProperty('--t-sa',      t.scoreActive);
+    r.setProperty('--t-si',      t.scoreInactive);
+    document.getElementById('app').style.background = t.bg;
+    document.body.style.background = t.bg;
+    // Update pulse-glow
+    const style = document.getElementById('theme-style') || document.createElement('style');
+    style.id = 'theme-style';
+    style.textContent = `
+        .pulse-glow{box-shadow:0 0 20px ${t.primaryGlow}!important;}
+        .mic-active{box-shadow:0 0 20px rgba(255,113,108,0.5)!important;}
+        input[type=range]::-webkit-slider-thumb{background:${t.primary}!important;}
+        .watch-frame{background:${t.bg}!important;}
+        body{background:${t.bg}!important;}
+    `;
+    if(!style.parentNode) document.head.appendChild(style);
+}
+
+function T(){return THEMES[S.theme||'neon']||THEMES.neon;}
+// Shorthand color helpers
+const tc = {
+    bg:()=>T().bg, surf:()=>T().surface, surf2:()=>T().surface2,
+    border:()=>T().border, text:()=>T().text, muted:()=>T().muted,
+    primary:()=>T().primary, glow:()=>T().primaryGlow,
+    accent:()=>T().accent, error:()=>T().error,
+    btnA:()=>T().btnA, btnAt:()=>T().btnAText,
+    btnB:()=>T().btnB, btnBt:()=>T().btnBText,
+    sa:()=>T().scoreActive, si:()=>T().scoreInactive
+};
 function startTimer(){
     if(timerInterval) return;
     timerInterval = setInterval(()=>{
@@ -652,7 +767,9 @@ const HomeView=()=>{
             ${sc.label?`<div class="mb-2"><span class="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/10 px-3 py-1 rounded-full border border-primary/20">${sc.label}</span></div>`:''}
             <div class="flex items-center justify-center gap-3 mb-3">
                 <div class="flex flex-col items-center" onclick="addPoint('A')" style="cursor:pointer">
-                    <div id="score-A" class="text-[5rem] font-black leading-none tracking-tighter ${S.serving==='A'?'text-primary':'text-on-surface/60'}" style="text-shadow:${S.serving==='A'?'0 0 24px rgba(0,253,135,0.3)':'none'}">${sc.scoreA}</div>
+                    <div id="score-A" class="text-[5rem] font-black leading-none tracking-tighter"
+                    style="color:${S.serving==='A'?tc.sa():tc.si()};text-shadow:${S.serving==='A'?'0 0 24px '+tc.glow():'none'}">
+                    ${sc.scoreA}</div>
                     <div class="flex items-center gap-1 mt-0.5">
                         ${S.serving==='A'?'<div class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse-slow"></div>':''}
                         <span class="text-[8px] font-bold text-on-surface-variant uppercase tracking-wider truncate max-w-[80px]">${S.teamA.name}</span>
@@ -660,7 +777,9 @@ const HomeView=()=>{
                 </div>
                 <div class="text-[2rem] font-thin text-primary/20">-</div>
                 <div class="flex flex-col items-center" onclick="addPoint('B')" style="cursor:pointer">
-                    <div id="score-B" class="text-[5rem] font-black leading-none tracking-tighter ${S.serving==='B'?'text-primary':'text-on-surface/60'}" style="text-shadow:${S.serving==='B'?'0 0 24px rgba(0,253,135,0.3)':'none'}">${sc.scoreB}</div>
+                    <div id="score-B" class="text-[5rem] font-black leading-none tracking-tighter"
+                    style="color:${S.serving==='B'?tc.sa():tc.si()};text-shadow:${S.serving==='B'?'0 0 24px '+tc.glow():'none'}">
+                    ${sc.scoreB}</div>
                     <div class="flex items-center gap-1 mt-0.5">
                         ${S.serving==='B'?'<div class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse-slow"></div>':''}
                         <span class="text-[8px] font-bold text-on-surface-variant uppercase tracking-wider truncate max-w-[80px]">${S.teamB.name}</span>
@@ -671,33 +790,40 @@ const HomeView=()=>{
 
         <div class="w-full">
             <div class="grid grid-cols-2 gap-2 mb-1.5">
-                <button onclick="addPoint('A')" class="bg-primary-container text-on-primary py-3.5 rounded-2xl flex flex-col items-center pulse-glow scale-press">
+                <button onclick="addPoint('A')" class="py-3.5 rounded-2xl flex flex-col items-center scale-press"
+                    style="background:${tc.btnA()};color:${tc.btnAt()};box-shadow:0 0 16px ${tc.glow()}">
                     <span class="material-symbols-outlined text-xl mb-0.5 filled">add_circle</span>
                     <span class="text-[10px] font-black uppercase truncate max-w-[90px]">+ ${S.teamA.name}</span>
                 </button>
-                <button onclick="addPoint('B')" class="bg-surface-container-highest text-on-surface py-3.5 rounded-2xl border border-white/5 scale-press flex flex-col items-center">
+                <button onclick="addPoint('B')" class="py-3.5 rounded-2xl border flex flex-col items-center scale-press"
+                    style="background:${tc.btnB()};color:${tc.btnBt()};border-color:rgba(255,255,255,0.06)">
                     <span class="material-symbols-outlined text-xl mb-0.5 filled">add_circle</span>
                     <span class="text-[10px] font-black uppercase truncate max-w-[90px]">+ ${S.teamB.name}</span>
                 </button>
             </div>
             <div class="grid grid-cols-2 gap-2 mb-1.5">
-                <button onclick="removePoint('A')" class="bg-surface-container border border-error/20 text-error py-2 rounded-xl flex items-center justify-center gap-1 scale-press">
+                <button onclick="removePoint('A')" class="py-2 rounded-xl flex items-center justify-center gap-1 scale-press border"
+                    style="background:${tc.surf()};border-color:${tc.error()}40;color:${tc.error()}">
                     <span class="material-symbols-outlined text-[14px]">remove_circle</span>
                     <span class="text-[9px] font-black uppercase">− ${S.teamA.name}</span>
                 </button>
-                <button onclick="removePoint('B')" class="bg-surface-container border border-error/20 text-error py-2 rounded-xl flex items-center justify-center gap-1 scale-press">
+                <button onclick="removePoint('B')" class="py-2 rounded-xl flex items-center justify-center gap-1 scale-press border"
+                    style="background:${tc.surf()};border-color:${tc.error()}40;color:${tc.error()}">
                     <span class="material-symbols-outlined text-[14px]">remove_circle</span>
                     <span class="text-[9px] font-black uppercase">− ${S.teamB.name}</span>
                 </button>
             </div>
             <div class="grid grid-cols-4 gap-1.5">
-                <button onclick="undoPoint()" class="bg-surface-container border border-outline-variant/20 text-on-surface-variant py-2 rounded-xl text-[9px] font-bold uppercase scale-press flex flex-col items-center gap-0.5">
+                <button onclick="undoPoint()" class="py-2 rounded-xl text-[9px] font-bold uppercase scale-press flex flex-col items-center gap-0.5 border"
+                    style="background:${tc.surf()};border-color:${tc.border()};color:${tc.muted()}">
                     <span class="material-symbols-outlined text-[14px]">undo</span>Deshacer
                 </button>
-                <button onclick="S.currentView='faults';render();" class="bg-surface-container border border-outline-variant/20 text-on-surface-variant py-2 rounded-xl text-[9px] font-bold uppercase scale-press flex flex-col items-center gap-0.5">
+                <button onclick="S.currentView='faults';render();" class="py-2 rounded-xl text-[9px] font-bold uppercase scale-press flex flex-col items-center gap-0.5 border"
+                    style="background:${tc.surf()};border-color:${tc.border()};color:${tc.muted()}">
                     <span class="material-symbols-outlined text-[14px]">warning</span>Faltas
                 </button>
-                <button onclick="newMatch()" class="bg-surface-container border border-primary/20 text-primary py-2 rounded-xl text-[9px] font-bold uppercase scale-press flex flex-col items-center gap-0.5">
+                <button onclick="newMatch()" class="py-2 rounded-xl text-[9px] font-bold uppercase scale-press flex flex-col items-center gap-0.5 border"
+                    style="background:${tc.surf()};border-color:${tc.primary()}40;color:${tc.primary()}">
                     <span class="material-symbols-outlined text-[14px]">add</span>Nueva
                 </button>
                 <button onclick="endMatch()" class="bg-surface-container border border-outline-variant/20 text-on-surface-variant py-2 rounded-xl text-[9px] font-bold uppercase scale-press flex flex-col items-center gap-0.5">
@@ -864,7 +990,21 @@ const SettingsView=()=>`
 </header>
 <div class="flex-1 scrollable px-4 pb-4 flex flex-col gap-3">
 
-    <div class="bg-surface-container rounded-3xl p-4">
+    <div class="rounded-3xl p-4" style="background:${tc.surf()}">
+        <div class="text-[9px] font-bold uppercase tracking-widest mb-3" style="color:${tc.muted()}">Estética / Tema</div>
+        <div class="grid grid-cols-3 gap-2">
+            ${Object.entries(THEMES).map(([id,t])=>`
+            <button onclick="S.theme='${id}';saveState();render();"
+                class="flex flex-col items-center gap-1.5 py-3 rounded-2xl border scale-press"
+                style="background:${t.bg};border-color:${(S.theme||'neon')===id?t.primary:'rgba(255,255,255,0.06)'};${(S.theme||'neon')===id?'box-shadow:0 0 12px '+t.primaryGlow+';':''}"
+            >
+                <span style="font-size:20px">${t.emoji}</span>
+                <div style="width:24px;height:4px;border-radius:2px;background:${t.primary};"></div>
+                <span style="font-size:9px;font-weight:700;color:${t.text};text-transform:uppercase;letter-spacing:0.5px;">${t.name}</span>
+                ${(S.theme||'neon')===id?`<span style="font-size:8px;color:${t.primary};font-weight:900;">✓ ACTIVO</span>`:''}
+            </button>`).join('')}
+        </div>
+    </div>
         <div class="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest mb-3">Parejas y jugadores</div>
         ${['A','B'].map(t=>`
         <div class="${t==='B'?'border-t border-white/5 pt-3 mt-3':''}">
@@ -949,6 +1089,7 @@ ${BottomNav('settings')}`;
 function render(){
     const app=document.getElementById('app');
     app.className='watch-frame font-body';
+    applyTheme(S.theme||'neon');
     switch(S.currentView){
         case 'home':     app.innerHTML=HomeView(); break;
         case 'faults':   app.innerHTML=FaultsView(); break;
