@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>PadelPulse Live</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<script>
+tailwind.config={darkMode:"class",theme:{extend:{colors:{"primary":"#a4ffb9","primary-container":"#00fd87","primary-dim":"#00ed7e","on-primary":"#006532","background":"#0e0e0e","surface":"#0e0e0e","surface-container":"#1a1919","surface-container-low":"#131313","surface-container-high":"#201f1f","surface-container-highest":"#262626","surface-container-lowest":"#000000","surface-bright":"#2c2c2c","on-surface":"#ffffff","on-surface-variant":"#adaaaa","outline":"#777575","outline-variant":"#494847","tertiary":"#7ee6ff","tertiary-dim":"#00cdee","error":"#ff716c","error-dim":"#d7383b"},fontFamily:{"body":["Lexend","sans-serif"]}}}}
+</script>
+<style>
+*{-webkit-tap-highlight-color:transparent;user-select:none;box-sizing:border-box;}
+body{margin:0;padding:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh;width:100vw;overflow:hidden;font-family:'Lexend',sans-serif;}
+.watch-frame{width:100vw;height:100vh;background:#0e0e0e;position:relative;overflow:hidden;display:flex;flex-direction:column;}
+@media(max-width:320px){.watch-frame{border-radius:2rem;}}
+.material-symbols-outlined{font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 24;}
+.material-symbols-outlined.filled{font-variation-settings:'FILL' 1,'wght' 400,'GRAD' 0,'opsz' 24;}
+.pulse-glow{box-shadow:0 0 20px rgba(0,253,135,0.4);}
+.scale-press:active{transform:scale(0.94);}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.animate-pulse-slow{animation:pulse 2s ease infinite;}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.slide-up{animation:slideUp 0.25s ease forwards;}
+@keyframes scoreFlash{0%{transform:scale(1)}50%{transform:scale(1.18)}100%{transform:scale(1)}}
+.score-flash{animation:scoreFlash 0.3s ease;}
+.mic-active{animation:pulse 0.8s ease infinite;box-shadow:0 0 20px rgba(255,113,108,0.5);}
+.scrollable{overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.scrollable::-webkit-scrollbar{display:none;}
+input[type=range]{-webkit-appearance:none;appearance:none;height:4px;background:#262626;border-radius:2px;outline:none;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;background:#00fd87;border-radius:50%;cursor:pointer;}
+input[type=text]{-webkit-user-select:text;user-select:text;}
+.countdown-ring{transform:rotate(-90deg);transform-origin:50% 50%;}
+@keyframes timerWarn{0%,100%{opacity:1}50%{opacity:0.3}}
+.timer-warn{animation:timerWarn 0.5s ease infinite;}
+</style>
+</head>
+<body>
+<div class="watch-frame font-body" id="app"></div>
+<script>
+const LOGO_BASE64 = "data:image/jpeg;base64,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";
+
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+const POINT_LABELS = ['0','15','30','40'];
+
+const defaultState = () => ({
+    teamA:{ name:'EQUIPO A', points:0, games:0, sets:0, playerA:'', playerB:'' },
+    teamB:{ name:'EQUIPO B', points:0, games:0, sets:0, playerA:'', playerB:'' },
+    setsHistory:[], currentSet:1,
+    serving:'A', deuce:false, advantage:null,
+    goldenPoint:false, superTiebreak:false,
+    tiebreak:false, tiebreakPoints:{A:0,B:0}, tiebreakServing:'A', tiebreakServCount:0,
+    matchOver:false, matchWinner:null,
+    gameTime:0, timerRunning:true,
+    betweenPoints:false, betweenTimer:0, betweenMax:20,
+    soundEnabled:true, brightness:100, voiceActive:false,
+    currentView:'home',
+    history:[], activityLog:[],
+    faults:{ A:{doubleFault:0,footFault:0,warning:0}, B:{doubleFault:0,footFault:0,warning:0} },
+    heartRate:0, calories:0,
+    momentum:[] // [{team:'A'|'B', time, set, game}]
+});
+
+let S = loadState();
+let timerInterval = null, betweenInterval = null;
+let recognition = null, audioCtx = null;
+
+function loadState(){
+    try{ const s=localStorage.getItem('pp_state_v3'); if(s) return JSON.parse(s); }catch(e){}
+    return defaultState();
+}
+function saveState(){ try{ localStorage.setItem('pp_state_v3',JSON.stringify(S)); }catch(e){} }
+
+// ═══════════════════════════════════════════
+// TIMER
+// ═══════════════════════════════════════════
+function startTimer(){
+    if(timerInterval) return;
+    timerInterval = setInterval(()=>{
+        if(S.timerRunning && !S.matchOver){ S.gameTime++; updateFooterTime(); }
+    },1000);
+}
+function toggleTimer(){ S.timerRunning=!S.timerRunning; render(); }
+function updateFooterTime(){
+    const el=document.getElementById('footer-time');
+    if(el) el.textContent=formatTime(S.gameTime);
+}
+const formatTime=(s)=>{
+    const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;
+    return h>0?`${pad(h)}:${pad(m)}:${pad(sec)}`:`${pad(m)}:${pad(sec)}`;
+};
+const pad=n=>String(n).padStart(2,'0');
+
+// ═══════════════════════════════════════════
+// BETWEEN POINTS TIMER
+// ═══════════════════════════════════════════
+function startBetweenTimer(max=20){
+    if(betweenInterval) clearInterval(betweenInterval);
+    S.betweenPoints=true; S.betweenTimer=max; S.betweenMax=max;
+    renderBetweenTimer();
+    betweenInterval=setInterval(()=>{
+        S.betweenTimer--;
+        renderBetweenTimer();
+        if(S.betweenTimer<=0){ clearInterval(betweenInterval); betweenInterval=null; S.betweenPoints=false; hideBetweenTimer(); if(S.soundEnabled) beep(880,0.15); }
+    },1000);
+}
+function renderBetweenTimer(){
+    const el=document.getElementById('between-timer');
+    if(!el) return;
+    const pct=(S.betweenTimer/S.betweenMax)*100;
+    el.querySelector('#bt-num').textContent=S.betweenTimer;
+    const ring=el.querySelector('.bt-ring');
+    if(ring){ const r=28; const circ=2*Math.PI*r; ring.style.strokeDashoffset=circ*(1-pct/100); }
+    if(S.betweenTimer<=5) el.querySelector('#bt-num').classList.add('timer-warn','text-error');
+    else el.querySelector('#bt-num').classList.remove('timer-warn','text-error');
+}
+function hideBetweenTimer(){ const el=document.getElementById('between-timer'); if(el) el.remove(); }
+function showBetweenTimerEl(max){
+    hideBetweenTimer();
+    const el=document.createElement('div');
+    el.id='between-timer';
+    const r=28,circ=2*Math.PI*r;
+    el.style.cssText='position:fixed;bottom:90px;right:16px;z-index:50;';
+    el.innerHTML=`<div class="relative flex items-center justify-center w-16 h-16">
+        <svg width="64" height="64" viewBox="0 0 64 64">
+            <circle cx="32" cy="32" r="${r}" fill="none" stroke="#262626" stroke-width="4"/>
+            <circle class="bt-ring countdown-ring" cx="32" cy="32" r="${r}" fill="none" stroke="#00fd87" stroke-width="4"
+                stroke-dasharray="${circ}" stroke-dashoffset="0" style="transition:stroke-dashoffset 0.9s linear;"/>
+        </svg>
+        <span id="bt-num" class="absolute text-on-surface font-black text-lg">${max}</span>
+    </div>`;
+    document.body.appendChild(el);
+}
+
+// ═══════════════════════════════════════════
+// AUDIO
+// ═══════════════════════════════════════════
+function getAudio(){ if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)(); return audioCtx; }
+function beep(f=880,d=0.08,t='sine',v=0.2){
+    if(!S.soundEnabled) return;
+    const c=getAudio(),o=c.createOscillator(),g=c.createGain();
+    o.connect(g);g.connect(c.destination);
+    o.type=t;o.frequency.value=f;
+    g.gain.setValueAtTime(v,c.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+d);
+    o.start();o.stop(c.currentTime+d);
+}
+function soundPoint(){ beep(660,0.07);setTimeout(()=>beep(880,0.07),80); }
+function soundGame(){ [440,550,660,770].forEach((f,i)=>setTimeout(()=>beep(f,0.12),i*75)); }
+function soundSet(){ [330,440,550,660,880,1100].forEach((f,i)=>setTimeout(()=>beep(f,0.15),i*80)); }
+function soundMatch(){ [330,440,550,660,440,660,880].forEach((f,i)=>setTimeout(()=>beep(f,0.2),i*100)); }
+function soundDeuce(){ beep(440,0.15,'square',0.1);setTimeout(()=>beep(440,0.15,'square',0.1),200); }
+function soundUndo(){ beep(300,0.1); }
+function soundWarning(){ beep(220,0.3,'sawtooth',0.15); }
+function soundTiebreak(){ [880,660,880,1100].forEach((f,i)=>setTimeout(()=>beep(f,0.1),i*100)); }
+
+// ═══════════════════════════════════════════
+// SCORE DISPLAY
+// ═══════════════════════════════════════════
+function getScoreDisplay(){
+    if(S.matchOver) return {scoreA:'FIN',scoreB:'FIN',label:null,isDeuce:false};
+    if(S.tiebreak){
+        return {
+            scoreA:String(S.tiebreakPoints.A), scoreB:String(S.tiebreakPoints.B),
+            label:'TIE-BREAK', isDeuce:false, isTiebreak:true
+        };
+    }
+    if(S.deuce){
+        if(S.goldenPoint) return {scoreA:'40',scoreB:'40',label:'PUNTO ORO',isDeuce:true};
+        if(S.advantage==='A') return {scoreA:'AD',scoreB:'40',label:'VENTAJA '+S.teamA.name,isDeuce:true};
+        if(S.advantage==='B') return {scoreA:'40',scoreB:'AD',label:'VENTAJA '+S.teamB.name,isDeuce:true};
+        return {scoreA:'40',scoreB:'40',label:'DEUCE',isDeuce:true};
+    }
+    return {scoreA:POINT_LABELS[S.teamA.points]||'0',scoreB:POINT_LABELS[S.teamB.points]||'0',label:null,isDeuce:false};
+}
+
+// ═══════════════════════════════════════════
+// LÓGICA COMPLETA
+// ═══════════════════════════════════════════
+function snapshot(){
+    S.history.push(JSON.parse(JSON.stringify({
+        teamA:S.teamA, teamB:S.teamB, setsHistory:S.setsHistory,
+        currentSet:S.currentSet, serving:S.serving, deuce:S.deuce,
+        advantage:S.advantage, tiebreak:S.tiebreak, tiebreakPoints:{...S.tiebreakPoints},
+        tiebreakServing:S.tiebreakServing, tiebreakServCount:S.tiebreakServCount,
+        matchOver:S.matchOver, matchWinner:S.matchWinner, faults:JSON.parse(JSON.stringify(S.faults))
+    })));
+    if(S.history.length>50) S.history.shift();
+}
+
+function addPoint(team){
+    if(S.matchOver) return;
+    snapshot();
+    flashScore(team);
+    S.momentum.push({team, time:S.gameTime, set:S.currentSet, game:S.teamA.games+S.teamB.games});
+    if(S.momentum.length>200) S.momentum.shift();
+
+    // TIEBREAK
+    if(S.tiebreak){ addTiebreakPoint(team); return; }
+
+    // SUPERDESEMPATE (tercer set a 10)
+    if(S.superTiebreak){ addSuperTiebreakPoint(team); return; }
+
+    const other=team==='A'?'B':'A';
+
+    // DEUCE / VENTAJA / PUNTO ORO
+    if(S.deuce){
+        if(S.goldenPoint){ winGame(team); return; }
+        if(S.advantage===null){ S.advantage=team; soundPoint(); render(); saveState(); return; }
+        if(S.advantage===team){ winGame(team); return; }
+        else{ S.advantage=null; soundDeuce(); logActivity('deuce',null); render(); saveState(); return; }
+    }
+
+    S['team'+team].points++;
+    const pts=S['team'+team].points, ptsOther=S['team'+other].points;
+
+    if(pts>=3&&ptsOther>=3){ S.deuce=true; S.advantage=null; soundDeuce(); logActivity('deuce',null); render(); saveState(); return; }
+    if(pts>=4){ winGame(team); return; }
+    soundPoint(); render(); saveState();
+}
+
+function addTiebreakPoint(team){
+    S.tiebreakPoints[team]++;
+    S.tiebreakServCount++;
+    // Saque: primero 1 punto, luego cada 2
+    if(S.tiebreakServCount===1 || S.tiebreakServCount>1 && S.tiebreakServCount%2===1){
+        S.tiebreakServing=S.tiebreakServing==='A'?'B':'A';
+    }
+    const pA=S.tiebreakPoints.A, pB=S.tiebreakPoints.B;
+    // Ganar: 7+ con diferencia 2
+    if((pA>=7||pB>=7)&&Math.abs(pA-pB)>=2){
+        const w=pA>pB?'A':'B';
+        winSet(w,S.teamA.games,S.teamB.games,true);
+    } else {
+        soundPoint(); render(); saveState();
+        // Cambio de lado cada 6 puntos totales
+        if((pA+pB)%6===0) showToast('🔄 Cambio de lado',2000);
+    }
+}
+
+function addSuperTiebreakPoint(team){
+    S.tiebreakPoints[team]++;
+    S.tiebreakServCount++;
+    if(S.tiebreakServCount===1||S.tiebreakServCount>1&&S.tiebreakServCount%2===1){
+        S.tiebreakServing=S.tiebreakServing==='A'?'B':'A';
+    }
+    const pA=S.tiebreakPoints.A,pB=S.tiebreakPoints.B;
+    if((pA>=10||pB>=10)&&Math.abs(pA-pB)>=2){
+        const w=pA>pB?'A':'B';
+        winSet(w,pA,pB,true);
+    } else { soundPoint(); render(); saveState(); }
+}
+
+function winGame(team){
+    soundGame();
+    S['team'+team].games++;
+    S.teamA.points=0; S.teamB.points=0;
+    S.deuce=false; S.advantage=null;
+    S.serving=S.serving==='A'?'B':'A';
+    logActivity('game',team);
+    // Estimar calorías
+    S.calories=Math.round(S.gameTime/60*7.5);
+
+    const gA=S.teamA.games, gB=S.teamB.games;
+    let setWinner=null;
+
+    // Tie-break a 6-6
+    if(gA===6&&gB===6&&!S.superTiebreak){
+        // Activar tie-break
+        S.tiebreak=true;
+        S.tiebreakPoints={A:0,B:0};
+        S.tiebreakServing=S.serving;
+        S.tiebreakServCount=0;
+        soundTiebreak();
+        showToast('🎯 ¡TIE-BREAK!',3000);
+        render(); saveState(); return;
+    }
+    if(gA>=6&&gA-gB>=2) setWinner='A';
+    else if(gB>=6&&gB-gA>=2) setWinner='B';
+
+    if(setWinner){ winSet(setWinner,gA,gB,false); }
+    else{ render(); saveState(); }
+    showBetweenTimerEl(20); startBetweenTimer(20);
+}
+
+function winSet(team,gA,gB,fromTiebreak){
+    soundSet();
+    S['team'+team].sets++;
+    S.setsHistory.push({a:gA,b:gB,winner:team,tiebreak:fromTiebreak||S.tiebreak||S.superTiebreak});
+    S.teamA.games=0; S.teamB.games=0;
+    S.tiebreak=false; S.superTiebreak=false;
+    S.tiebreakPoints={A:0,B:0};
+    S.currentSet++;
+    logActivity('set',team);
+
+    const setsA=S.setsHistory.filter(s=>s.winner==='A').length;
+    const setsB=S.setsHistory.filter(s=>s.winner==='B').length;
+
+    // Ganar partido (mejor de 3)
+    if(setsA>=2||setsB>=2){
+        S.matchOver=true; S.matchWinner=team; S.timerRunning=false;
+        soundMatch(); logActivity('match',team);
+        saveState(); render();
+        setTimeout(()=>showMatchOver(team),400); return;
+    }
+
+    // Tercer set: opción superdesempate
+    if(S.currentSet===3&&S.goldenPoint){
+        // Activar superdesempate directamente
+        S.superTiebreak=true; S.tiebreak=true;
+        S.tiebreakPoints={A:0,B:0}; S.tiebreakServing=S.serving;
+        showToast('⚡ SUPERDESEMPATE — primero a 10',3000);
+    }
+
+    render(); saveState();
+    showToast(`🏆 Set para ${S['team'+team].name} (${gA}-${gB})`,3000);
+    showBetweenTimerEl(90); startBetweenTimer(90);
+}
+
+function removePoint(team){
+    if(S.matchOver) return;
+    snapshot();
+    const t=S['team'+team];
+    if(S.tiebreak){
+        if(S.tiebreakPoints[team]>0) S.tiebreakPoints[team]--;
+        else{ showToast('No hay puntos que quitar'); S.history.pop(); return; }
+    } else if(S.deuce){
+        if(S.advantage===team) S.advantage=null;
+        else{ S.deuce=false; t.points=3; S['team'+(team==='A'?'B':'A')].points=3; }
+    } else {
+        if(t.points>0) t.points--;
+        else if(t.games>0){
+            t.games--; t.points=0; S['team'+(team==='A'?'B':'A')].points=0;
+            S.serving=S.serving==='A'?'B':'A';
+            showToast('↩ Juego retirado a '+t.name);
+        } else { showToast('No hay puntos que quitar'); S.history.pop(); return; }
+    }
+    soundUndo(); render(); saveState(); showToast('➖ Punto retirado a '+t.name);
+}
+
+function undoPoint(){
+    if(!S.history.length){ showToast('Nada que deshacer'); return; }
+    const prev=S.history.pop(); Object.assign(S,prev);
+    soundUndo(); render(); saveState(); showToast('↩ Punto deshecho');
+}
+
+function logActivity(type,team){
+    S.activityLog.unshift({type,team,time:formatTime(S.gameTime),set:S.currentSet,score:{gA:S.teamA.games,gB:S.teamB.games}});
+    if(S.activityLog.length>100) S.activityLog.pop();
+}
+
+function flashScore(team){
+    setTimeout(()=>{ const el=document.getElementById('score-'+team); if(el){el.classList.add('score-flash');setTimeout(()=>el.classList.remove('score-flash'),300);} },10);
+}
+
+// ═══════════════════════════════════════════
+// FALTAS
+// ═══════════════════════════════════════════
+function addFault(team,type){
+    snapshot();
+    S.faults[team][type]++;
+    soundWarning();
+    const labels={doubleFault:'Doble falta',footFault:'Falta de pie',warning:'Advertencia'};
+    logActivity('fault',team);
+    showToast(`⚠️ ${labels[type]} — ${S['team'+team].name}`);
+    // Doble falta = punto contrario
+    if(type==='doubleFault'){ addPoint(team==='A'?'B':'A'); return; }
+    render(); saveState();
+}
+
+// ═══════════════════════════════════════════
+// MATCH MANAGEMENT
+// ═══════════════════════════════════════════
+function endMatch(){
+    if(S.matchOver){ showToast('Partido ya terminado'); return; }
+    showConfirmModal('¿Finalizar partido?','El partido se cerrará y podrás ver las estadísticas finales.','Finalizar',()=>{
+        S.matchOver=true; S.timerRunning=false;
+        const sA=S.setsHistory.filter(s=>s.winner==='A').length;
+        const sB=S.setsHistory.filter(s=>s.winner==='B').length;
+        S.matchWinner=sA>=sB?'A':'B';
+        logActivity('match',S.matchWinner); soundMatch(); saveState(); render();
+        setTimeout(()=>showMatchOver(S.matchWinner),300);
+    });
+}
+
+function newMatch(){
+    showConfirmModal('¿Nueva partida?','Se iniciará un partido nuevo conservando los nombres de los jugadores.','Nueva partida',()=>{
+        const ns=defaultState();
+        ['teamA','teamB'].forEach(t=>{ ns[t].name=S[t].name; ns[t].playerA=S[t].playerA||''; ns[t].playerB=S[t].playerB||''; });
+        ns.soundEnabled=S.soundEnabled; ns.brightness=S.brightness; ns.goldenPoint=S.goldenPoint; ns.serving=S.serving;
+        S=ns; saveState(); render(); showToast('🎾 Nueva partida');
+    });
+}
+
+function resetMatch(){
+    showConfirmModal('¿Reiniciar partido?','Se borrarán todos los puntos del partido actual.','Reiniciar',()=>{
+        const ns=defaultState();
+        ['teamA','teamB'].forEach(t=>{ ns[t].name=S[t].name; ns[t].playerA=S[t].playerA||''; ns[t].playerB=S[t].playerB||''; });
+        ns.soundEnabled=S.soundEnabled; ns.brightness=S.brightness; ns.goldenPoint=S.goldenPoint;
+        S=ns; saveState(); render();
+    });
+}
+
+function showMatchOver(team){
+    const name=S['team'+team].name;
+    const players=[S['team'+team].playerA,S['team'+team].playerB].filter(Boolean).join(' & ');
+    const el=document.createElement('div');
+    el.className='fixed inset-0 z-50 flex flex-col items-center justify-center';
+    el.style.background='rgba(0,0,0,0.95)';
+    el.innerHTML=`<div class="slide-up text-center px-8">
+        <div class="text-5xl mb-4">🏆</div>
+        <div class="text-on-surface-variant text-xs font-bold tracking-widest uppercase mb-2">Partido terminado</div>
+        <div class="text-primary text-4xl font-black mb-1">${name}</div>
+        ${players?`<div class="text-on-surface-variant text-sm mb-2">${players}</div>`:''}
+        <div class="text-on-surface text-lg font-bold mb-1">GANA EL PARTIDO</div>
+        <div class="text-on-surface-variant text-sm mb-2">${S.setsHistory.map(s=>`${s.a}-${s.b}${s.tiebreak?' (TB)':''}`).join(' · ')}</div>
+        <div class="text-on-surface-variant text-sm mb-6">${formatTime(S.gameTime)}</div>
+        <div class="flex gap-3 justify-center mb-3">
+            <button onclick="this.closest('.fixed').remove();S.currentView='stats';render();" class="bg-surface-container-highest text-on-surface px-5 py-3 rounded-2xl text-sm font-bold">Ver stats</button>
+            <button onclick="this.closest('.fixed').remove();newMatch();" class="bg-primary-container text-on-primary px-5 py-3 rounded-2xl text-sm font-bold pulse-glow">Nueva partida</button>
+        </div>
+        <button onclick="shareResult();" class="w-full bg-surface-container border border-outline-variant/20 text-on-surface-variant py-2.5 rounded-2xl text-xs font-bold uppercase scale-press flex items-center justify-center gap-2">
+            <span class="material-symbols-outlined text-[14px]">share</span> Compartir resultado
+        </button>
+    </div>`;
+    document.body.appendChild(el);
+}
+
+function showConfirmModal(title,subtitle,label,onConfirm){
+    const el=document.createElement('div');
+    el.id='confirm-modal';
+    el.style.cssText='position:fixed;inset:0;z-index:200;display:flex;align-items:flex-end;background:rgba(0,0,0,0.7);';
+    el.innerHTML=`<div class="slide-up w-full bg-surface-container rounded-t-3xl p-6 flex flex-col gap-4">
+        <div class="text-on-surface font-black text-base">${title}</div>
+        <div class="text-on-surface-variant text-[12px] leading-relaxed">${subtitle}</div>
+        <div class="flex gap-3">
+            <button onclick="document.getElementById('confirm-modal').remove();" class="flex-1 py-3.5 rounded-2xl bg-surface-container-high text-on-surface-variant text-[12px] font-black uppercase scale-press">Cancelar</button>
+            <button id="confirm-ok" class="flex-1 py-3.5 rounded-2xl bg-error/10 border border-error/30 text-error text-[12px] font-black uppercase scale-press">${label}</button>
+        </div>
+    </div>`;
+    document.body.appendChild(el);
+    document.getElementById('confirm-ok').onclick=()=>{ el.remove(); onConfirm(); };
+}
+
+// ═══════════════════════════════════════════
+// COMPARTIR
+// ═══════════════════════════════════════════
+function shareResult(){
+    const nA=S.teamA.name, nB=S.teamB.name;
+    const pA=[S.teamA.playerA,S.teamA.playerB].filter(Boolean).join(' / ');
+    const pB=[S.teamB.playerA,S.teamB.playerB].filter(Boolean).join(' / ');
+    const sets=S.setsHistory.map((s,i)=>`Set ${i+1}: ${s.a}-${s.b}${s.tiebreak?' (TB)':''}`).join('\n');
+    const winner=S.matchWinner?S['team'+S.matchWinner].name:'En curso';
+    const text=`🎾 PadelPulse Live\n\n${nA}${pA?' ('+pA+')':''}\nvs\n${nB}${pB?' ('+pB+')':''}\n\n${sets}\n\n🏆 Ganador: ${winner}\n⏱️ Duración: ${formatTime(S.gameTime)}\n\nMarcado con PadelPulse Live`;
+    if(navigator.share){ navigator.share({title:'PadelPulse Live',text}).catch(()=>copyToClipboard(text)); }
+    else copyToClipboard(text);
+}
+
+function copyToClipboard(text){
+    navigator.clipboard.writeText(text).then(()=>showToast('📋 Copiado al portapapeles')).catch(()=>showToast('No se pudo copiar'));
+}
+
+function shareQR(){
+    const url=window.location.href;
+    const qrUrl=`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
+    const el=document.createElement('div');
+    el.style.cssText='position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.85);';
+    el.onclick=()=>el.remove();
+    el.innerHTML=`<div class="slide-up bg-surface-container rounded-3xl p-6 text-center mx-6" onclick="event.stopPropagation()">
+        <div class="text-on-surface font-black text-sm mb-3 uppercase tracking-wider">QR para espectadores</div>
+        <img src="${qrUrl}" class="rounded-2xl mb-3 mx-auto" width="180" height="180" onerror="this.style.display='none'">
+        <div class="text-on-surface-variant text-[11px] mb-4">Escanea para seguir el marcador en tiempo real</div>
+        <button onclick="this.closest('.fixed').remove();" class="bg-surface-container-high text-on-surface-variant px-6 py-2.5 rounded-2xl text-xs font-bold uppercase">Cerrar</button>
+    </div>`;
+    document.body.appendChild(el);
+}
+
+// ═══════════════════════════════════════════
+// VOZ
+// ═══════════════════════════════════════════
+function startVoice(){
+    const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!SR){ showToast('⚠️ Voz no disponible'); return; }
+    if(recognition){ stopVoice(); return; }
+    recognition=new SR(); recognition.lang='es-ES'; recognition.continuous=true; recognition.interimResults=false; recognition.maxAlternatives=3;
+    recognition.onresult=(e)=>{ for(let i=e.resultIndex;i<e.results.length;i++) if(e.results[i].isFinal) processVoiceCommand(e.results[i][0].transcript.toLowerCase().trim()); };
+    recognition.onerror=(e)=>{ if(e.error!=='no-speech'){ showToast('Voz: '+e.error); stopVoice(); } };
+    recognition.onend=()=>{ if(S.voiceActive) recognition.start(); };
+    recognition.start(); S.voiceActive=true; render(); showToast('🎙️ Escuchando...',2000);
+}
+function stopVoice(){ if(recognition){ try{recognition.stop();}catch(e){} recognition=null; } S.voiceActive=false; render(); }
+function toggleVoice(){ if(S.voiceActive) stopVoice(); else startVoice(); }
+function processVoiceCommand(txt){
+    const nA=S.teamA.name.toLowerCase(), nB=S.teamB.name.toLowerCase();
+    const srv=S.serving; // 'A' o 'B' — quién saca ahora
+
+    // ── Deshacer ──────────────────────────────
+    if(['deshacer','error','quitar','volver','atrás'].some(c=>txt.includes(c))){ undoPoint(); showToast('🎙️ Deshecho'); return; }
+
+    // ── Gestión partido ───────────────────────
+    if(['finalizar','terminar partido'].some(c=>txt.includes(c))){ endMatch(); return; }
+    if(['nueva partida','nuevo partido'].some(c=>txt.includes(c))){ newMatch(); return; }
+
+    // ── Doble falta (+ falta de pie) ──────────
+    // Doble falta al saque → punto al resto
+    if(txt.includes('doble falta')){
+        const faulter = txt.includes(' a')||txt.includes(nA) ? 'A'
+                      : txt.includes(' b')||txt.includes(nB) ? 'B'
+                      : srv; // si no especifica equipo, la comete el que saca
+        addFault(faulter,'doubleFault');
+        showToast('🎙️ Doble falta — punto al resto');
+        return;
+    }
+    // Falta simple (pie, red...) — solo registro, no concede punto
+    if(txt==='falta'||txt.startsWith('falta ')){
+        const faulter = txt.includes(' a')||txt.includes(nA) ? 'A'
+                      : txt.includes(' b')||txt.includes(nB) ? 'B'
+                      : srv;
+        addFault(faulter,'footFault');
+        showToast('🎙️ Falta registrada');
+        return;
+    }
+
+    // ── Ventaja servicio / ventaja resto ──────
+    // "ventaja servicio" o "ventaja saque" → punto al que sirve
+    if(txt.includes('ventaja servicio')||txt.includes('ventaja saque')){
+        addPoint(srv);
+        showToast('🎙️ Ventaja '+S['team'+srv].name);
+        return;
+    }
+    // "ventaja resto" → punto al que resta
+    if(txt.includes('ventaja resto')){
+        const rstr=srv==='A'?'B':'A';
+        addPoint(rstr);
+        showToast('🎙️ Ventaja '+S['team'+rstr].name);
+        return;
+    }
+
+    // ── Punto al saque / punto al resto ───────
+    // "punto al saque", "punto saque", "saque" solo
+    if(txt.includes('punto al saque')||txt.includes('punto saque')||txt==='saque'||txt==='al saque'){
+        addPoint(srv);
+        showToast('🎙️ Punto saque — '+S['team'+srv].name);
+        return;
+    }
+    // "punto al resto", "punto resto", "resto" solo
+    if(txt.includes('punto al resto')||txt.includes('punto resto')||txt==='resto'||txt==='al resto'){
+        const rstr=srv==='A'?'B':'A';
+        addPoint(rstr);
+        showToast('🎙️ Punto resto — '+S['team'+rstr].name);
+        return;
+    }
+
+    // ── Punto equipo A / punto A / equipo A ───
+    const cmdsA=['punto equipo a','punto a','equipo a','pareja a','primero',nA];
+    const cmdsB=['punto equipo b','punto b','equipo b','pareja b','segundo',nB];
+    if(cmdsA.some(c=>txt===c||txt.includes(c))){ addPoint('A'); showToast('🎙️ Punto '+S.teamA.name); return; }
+    if(cmdsB.some(c=>txt===c||txt.includes(c))){ addPoint('B'); showToast('🎙️ Punto '+S.teamB.name); return; }
+
+    showToast('🎙️ "'+txt+'" — no entendido',2500);
+}
+
+// ═══════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════
+let toastTimeout;
+function showToast(msg,dur=2000){
+    let el=document.getElementById('toast');
+    if(!el){ el=document.createElement('div'); el.id='toast'; el.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1a1919;border:1px solid #494847;color:#a4ffb9;padding:8px 16px;border-radius:12px;font-size:12px;font-weight:700;z-index:150;white-space:nowrap;transition:opacity 0.3s;'; document.body.appendChild(el); }
+    el.textContent=msg; el.style.opacity='1';
+    clearTimeout(toastTimeout); toastTimeout=setTimeout(()=>{ el.style.opacity='0'; },dur);
+}
+
+// ═══════════════════════════════════════════
+// HEADER + NAV
+// ═══════════════════════════════════════════
+const Header=()=>`
+<header class="bg-surface-container-lowest flex justify-between items-center w-full px-4 pt-5 pb-3 flex-shrink-0">
+    <img src="${LOGO_BASE64}" alt="PadelPulse" class="h-8" style="object-fit:contain;">
+    <div class="flex items-center gap-2">
+        ${S.voiceActive?`<div class="flex items-center gap-1 bg-error/10 border border-error/30 px-2 py-1 rounded-full mic-active"><span class="material-symbols-outlined text-error text-[12px] filled">mic</span><span class="text-error text-[9px] font-black">VOZ</span></div>`:''}
+        <button onclick="toggleVoice()" class="p-2 rounded-xl scale-press ${S.voiceActive?'bg-error/10 border border-error/30':'bg-surface-container border border-outline-variant/30'}">
+            <span class="material-symbols-outlined text-[20px] ${S.voiceActive?'text-error filled':'text-on-surface-variant'}">${S.voiceActive?'mic':'mic_off'}</span>
+        </button>
+        <button onclick="shareResult();" class="p-2 rounded-xl scale-press bg-surface-container border border-outline-variant/30">
+            <span class="material-symbols-outlined text-[20px] text-on-surface-variant">share</span>
+        </button>
+        <button onclick="S.currentView='settings';render();" class="p-2 rounded-xl scale-press bg-surface-container border border-outline-variant/30">
+            <span class="material-symbols-outlined text-[20px] text-on-surface-variant">settings</span>
+        </button>
+    </div>
+</header>`;
+
+const BottomNav=(active)=>`
+<nav class="bg-surface-container-lowest border-t border-white/5 px-2 py-2 grid grid-cols-4 gap-1 flex-shrink-0">
+    ${[{id:'home',icon:'scoreboard',label:'Marcador'},{id:'stats',icon:'monitoring',label:'Stats'},{id:'activity',icon:'list_alt',label:'Historial'},{id:'settings',icon:'tune',label:'Ajustes'}].map(item=>`
+    <button onclick="S.currentView='${item.id}';render();" class="flex flex-col items-center justify-center py-2 rounded-2xl scale-press ${active===item.id?'bg-surface-container-highest text-primary':'text-on-surface-variant'}">
+        <span class="material-symbols-outlined text-[22px] ${active===item.id?'filled':''}">${item.icon}</span>
+        <span class="text-[9px] font-bold uppercase mt-0.5">${item.label}</span>
+    </button>`).join('')}
+</nav>`;
+
+// ═══════════════════════════════════════════
+// HOME VIEW
+// ═══════════════════════════════════════════
+const HomeView=()=>{
+    const sc=getScoreDisplay();
+    const sA=S.setsHistory.filter(s=>s.winner==='A').length;
+    const sB=S.setsHistory.filter(s=>s.winner==='B').length;
+    const setPills=S.setsHistory.length?`<div class="flex gap-1.5 justify-center mb-2">
+        ${S.setsHistory.map(s=>`<span class="text-[9px] font-bold px-2 py-0.5 rounded-full border ${s.winner==='A'?'border-primary/40 text-primary bg-primary/10':'border-outline-variant/40 text-on-surface-variant'}">${s.a}-${s.b}${s.tiebreak?'(T)':''}</span>`).join('')}
+    </div>`:'' ;
+
+    return `${Header()}
+    <main class="flex-1 flex flex-col items-center justify-between px-4 py-1 overflow-hidden">
+        <div class="w-full">
+            ${setPills}
+            <div class="flex justify-between items-center mb-1">
+                <span class="text-[9px] font-black uppercase tracking-widest text-on-surface-variant">Sets</span>
+                <span class="text-[9px] font-black uppercase tracking-widest text-on-surface-variant">${S.tiebreak?'TIE-BREAK':'Set '+S.currentSet+' · Juegos'}</span>
+            </div>
+            <div class="flex justify-between items-center mb-2 px-1">
+                <div class="text-center flex-1">
+                    <div class="text-xl font-black text-primary">${sA}</div>
+                    <div class="text-[8px] font-bold text-on-surface-variant uppercase truncate">${S.teamA.name}</div>
+                    ${(S.teamA.playerA||S.teamA.playerB)?`<div class="text-[7px] text-on-surface-variant/50 truncate">${[S.teamA.playerA,S.teamA.playerB].filter(Boolean).join('/')}</div>`:''}
+                </div>
+                <div class="text-on-surface-variant/30 text-lg font-thin px-1">·</div>
+                <div class="text-center flex-1">
+                    <div class="text-xl font-black text-on-surface">${sB}</div>
+                    <div class="text-[8px] font-bold text-on-surface-variant uppercase truncate">${S.teamB.name}</div>
+                    ${(S.teamB.playerA||S.teamB.playerB)?`<div class="text-[7px] text-on-surface-variant/50 truncate">${[S.teamB.playerA,S.teamB.playerB].filter(Boolean).join('/')}</div>`:''}
+                </div>
+                <div class="w-px bg-outline-variant/30 mx-2 h-8"></div>
+                <div class="text-center flex-1"><div class="text-xl font-black ${S.serving==='A'?'text-primary':'text-on-surface'}">${S.tiebreak?S.tiebreakPoints.A:S.teamA.games}</div></div>
+                <div class="text-on-surface-variant/30 text-lg font-thin px-1">-</div>
+                <div class="text-center flex-1"><div class="text-xl font-black ${S.serving==='B'?'text-primary':'text-on-surface'}">${S.tiebreak?S.tiebreakPoints.B:S.teamB.games}</div></div>
+            </div>
+        </div>
+
+        <div class="w-full text-center">
+            ${sc.label?`<div class="mb-2"><span class="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/10 px-3 py-1 rounded-full border border-primary/20">${sc.label}</span></div>`:''}
+            <div class="flex items-center justify-center gap-3 mb-3">
+                <div class="flex flex-col items-center" onclick="addPoint('A')" style="cursor:pointer">
+                    <div id="score-A" class="text-[5rem] font-black leading-none tracking-tighter ${S.serving==='A'?'text-primary':'text-on-surface/60'}" style="text-shadow:${S.serving==='A'?'0 0 24px rgba(0,253,135,0.3)':'none'}">${sc.scoreA}</div>
+                    <div class="flex items-center gap-1 mt-0.5">
+                        ${S.serving==='A'?'<div class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse-slow"></div>':''}
+                        <span class="text-[8px] font-bold text-on-surface-variant uppercase tracking-wider truncate max-w-[80px]">${S.teamA.name}</span>
+                    </div>
+                </div>
+                <div class="text-[2rem] font-thin text-primary/20">-</div>
+                <div class="flex flex-col items-center" onclick="addPoint('B')" style="cursor:pointer">
+                    <div id="score-B" class="text-[5rem] font-black leading-none tracking-tighter ${S.serving==='B'?'text-primary':'text-on-surface/60'}" style="text-shadow:${S.serving==='B'?'0 0 24px rgba(0,253,135,0.3)':'none'}">${sc.scoreB}</div>
+                    <div class="flex items-center gap-1 mt-0.5">
+                        ${S.serving==='B'?'<div class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse-slow"></div>':''}
+                        <span class="text-[8px] font-bold text-on-surface-variant uppercase tracking-wider truncate max-w-[80px]">${S.teamB.name}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="w-full">
+            <div class="grid grid-cols-2 gap-2 mb-1.5">
+                <button onclick="addPoint('A')" class="bg-primary-container text-on-primary py-3.5 rounded-2xl flex flex-col items-center pulse-glow scale-press">
+                    <span class="material-symbols-outlined text-xl mb-0.5 filled">add_circle</span>
+                    <span class="text-[10px] font-black uppercase truncate max-w-[90px]">+ ${S.teamA.name}</span>
+                </button>
+                <button onclick="addPoint('B')" class="bg-surface-container-highest text-on-surface py-3.5 rounded-2xl border border-white/5 scale-press flex flex-col items-center">
+                    <span class="material-symbols-outlined text-xl mb-0.5 filled">add_circle</span>
+                    <span class="text-[10px] font-black uppercase truncate max-w-[90px]">+ ${S.teamB.name}</span>
+                </button>
+            </div>
+            <div class="grid grid-cols-2 gap-2 mb-1.5">
+                <button onclick="removePoint('A')" class="bg-surface-container border border-error/20 text-error py-2 rounded-xl flex items-center justify-center gap-1 scale-press">
+                    <span class="material-symbols-outlined text-[14px]">remove_circle</span>
+                    <span class="text-[9px] font-black uppercase">− ${S.teamA.name}</span>
+                </button>
+                <button onclick="removePoint('B')" class="bg-surface-container border border-error/20 text-error py-2 rounded-xl flex items-center justify-center gap-1 scale-press">
+                    <span class="material-symbols-outlined text-[14px]">remove_circle</span>
+                    <span class="text-[9px] font-black uppercase">− ${S.teamB.name}</span>
+                </button>
+            </div>
+            <div class="grid grid-cols-4 gap-1.5">
+                <button onclick="undoPoint()" class="bg-surface-container border border-outline-variant/20 text-on-surface-variant py-2 rounded-xl text-[9px] font-bold uppercase scale-press flex flex-col items-center gap-0.5">
+                    <span class="material-symbols-outlined text-[14px]">undo</span>Deshacer
+                </button>
+                <button onclick="S.currentView='faults';render();" class="bg-surface-container border border-outline-variant/20 text-on-surface-variant py-2 rounded-xl text-[9px] font-bold uppercase scale-press flex flex-col items-center gap-0.5">
+                    <span class="material-symbols-outlined text-[14px]">warning</span>Faltas
+                </button>
+                <button onclick="newMatch()" class="bg-surface-container border border-primary/20 text-primary py-2 rounded-xl text-[9px] font-bold uppercase scale-press flex flex-col items-center gap-0.5">
+                    <span class="material-symbols-outlined text-[14px]">add</span>Nueva
+                </button>
+                <button onclick="endMatch()" class="bg-surface-container border border-outline-variant/20 text-on-surface-variant py-2 rounded-xl text-[9px] font-bold uppercase scale-press flex flex-col items-center gap-0.5">
+                    <span class="material-symbols-outlined text-[14px]">flag</span>Fin
+                </button>
+            </div>
+        </div>
+    </main>
+    <footer class="px-4 py-1.5 flex justify-between items-center text-on-surface-variant/50 flex-shrink-0">
+        <div class="flex items-center gap-2">
+            <div class="w-1.5 h-1.5 rounded-full ${S.timerRunning?'bg-primary animate-pulse-slow':'bg-outline-variant'}"></div>
+            <span class="text-[10px] font-bold">${S.tiebreak?'TIE-BREAK':'SET '+S.currentSet}</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+            ${S.calories>0?`<span class="text-[10px] text-tertiary">🔥${S.calories}kcal</span>`:''}
+            <span class="text-[12px] font-mono" id="footer-time">${formatTime(S.gameTime)}</span>
+            <button onclick="toggleTimer()" class="p-1 rounded-lg scale-press">
+                <span class="material-symbols-outlined text-[14px]">${S.timerRunning?'pause':'play_arrow'}</span>
+            </button>
+        </div>
+    </footer>
+    ${BottomNav('home')}`;
+};
+
+// ═══════════════════════════════════════════
+// FAULTS VIEW
+// ═══════════════════════════════════════════
+const FaultsView=()=>`
+<header class="px-4 pt-5 pb-3 flex items-center gap-3 flex-shrink-0">
+    <button onclick="S.currentView='home';render();" class="p-2 rounded-xl scale-press"><span class="material-symbols-outlined text-on-surface-variant text-[20px]">arrow_back</span></button>
+    <span class="text-on-surface font-bold text-base">Faltas y advertencias</span>
+</header>
+<div class="flex-1 scrollable px-4 pb-4">
+    ${['A','B'].map(t=>`
+    <div class="bg-surface-container rounded-3xl p-4 mb-4">
+        <div class="flex items-center gap-2 mb-3">
+            <div class="w-2 h-2 rounded-full ${t==='A'?'bg-primary':'bg-outline-variant'}"></div>
+            <span class="text-sm font-black text-on-surface uppercase">${S['team'+t].name}</span>
+            <span class="ml-auto text-[10px] text-on-surface-variant">DF:${S.faults[t].doubleFault} FF:${S.faults[t].footFault} W:${S.faults[t].warning}</span>
+        </div>
+        <div class="grid grid-cols-3 gap-2">
+            <button onclick="addFault('${t}','doubleFault')" class="bg-error/10 border border-error/20 text-error py-3 rounded-2xl text-[10px] font-black uppercase scale-press flex flex-col items-center gap-1">
+                <span class="material-symbols-outlined text-[18px]">sports_tennis</span>Doble falta<span class="text-base font-black">${S.faults[t].doubleFault}</span>
+            </button>
+            <button onclick="addFault('${t}','footFault')" class="bg-surface-container-high border border-outline-variant/20 text-on-surface py-3 rounded-2xl text-[10px] font-black uppercase scale-press flex flex-col items-center gap-1">
+                <span class="material-symbols-outlined text-[18px]">hiking</span>Pie<span class="text-base font-black">${S.faults[t].footFault}</span>
+            </button>
+            <button onclick="addFault('${t}','warning')" class="bg-surface-container-high border border-outline-variant/20 text-on-surface py-3 rounded-2xl text-[10px] font-black uppercase scale-press flex flex-col items-center gap-1">
+                <span class="material-symbols-outlined text-[18px]">warning</span>Aviso<span class="text-base font-black">${S.faults[t].warning}</span>
+            </button>
+        </div>
+    </div>`).join('')}
+    <div class="text-[10px] text-on-surface-variant/50 text-center">Las dobles faltas conceden el punto al rival automáticamente</div>
+</div>
+${BottomNav('home')}`;
+
+// ═══════════════════════════════════════════
+// STATS VIEW
+// ═══════════════════════════════════════════
+const StatsView=()=>{
+    const totalGames=S.setsHistory.reduce((a,s)=>a+s.a+s.b,0)+S.teamA.games+S.teamB.games;
+    const sA=S.setsHistory.filter(s=>s.winner==='A').length;
+    const sB=S.setsHistory.filter(s=>s.winner==='B').length;
+    const gA=S.setsHistory.reduce((a,s)=>a+s.a,0)+S.teamA.games;
+    const gB=S.setsHistory.reduce((a,s)=>a+s.b,0)+S.teamB.games;
+    const gTot=gA+gB||1;
+    const pctA=Math.round(gA/gTot*100);
+    const bar=(pct,isA)=>`<div style="width:${pct}%;height:6px;border-radius:3px;background:${isA?'#00fd87':'#262626'};"></div>`;
+    // Momentum chart (últimos 30 puntos)
+    const last30=S.momentum.slice(-30);
+    const momentumHtml=last30.length?`<div class="flex gap-0.5 items-end h-8">${last30.map(m=>`<div class="flex-1 rounded-sm" style="height:${m.team==='A'?'100%':'50%'};background:${m.team==='A'?'#00fd87':'#494847'};"></div>`).join('')}</div>`:'<div class="text-[10px] text-on-surface-variant/50 text-center py-3">Sin datos aún</div>';
+
+    return `
+<header class="px-4 pt-5 pb-3 flex items-center gap-3 flex-shrink-0">
+    <button onclick="S.currentView='home';render();" class="p-2 rounded-xl scale-press"><span class="material-symbols-outlined text-on-surface-variant text-[20px]">arrow_back</span></button>
+    <span class="text-on-surface font-bold text-base">Estadísticas</span>
+    <button onclick="shareResult();" class="ml-auto p-2 rounded-xl scale-press bg-surface-container border border-outline-variant/20"><span class="material-symbols-outlined text-on-surface-variant text-[18px]">share</span></button>
+</header>
+<div class="flex-1 scrollable px-4 pb-4 flex flex-col gap-3">
+    <div class="bg-surface-container rounded-3xl p-4">
+        <div class="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest mb-3">Partido</div>
+        <div class="grid grid-cols-3 gap-3 text-center">
+            <div><div class="text-2xl font-black text-primary">${sA}</div><div class="text-[8px] text-on-surface-variant uppercase">${S.teamA.name}</div></div>
+            <div><div class="text-lg font-black text-on-surface">${formatTime(S.gameTime)}</div><div class="text-[8px] text-on-surface-variant uppercase">Duración</div></div>
+            <div><div class="text-2xl font-black text-on-surface">${sB}</div><div class="text-[8px] text-on-surface-variant uppercase">${S.teamB.name}</div></div>
+        </div>
+    </div>
+    ${S.setsHistory.length?`<div class="bg-surface-container rounded-3xl p-4">
+        <div class="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest mb-3">Por set</div>
+        ${S.setsHistory.map((s,i)=>`<div class="mb-2"><div class="flex justify-between text-[9px] text-on-surface-variant mb-1"><span>Set ${i+1}${s.tiebreak?' (TB)':''}</span><span>${s.a}-${s.b}</span></div><div class="flex gap-1">${bar(Math.round(s.a/(s.a+s.b)*100),true)}${bar(Math.round(s.b/(s.a+s.b)*100),false)}</div></div>`).join('')}
+    </div>`:''}
+    <div class="bg-surface-container rounded-3xl p-4">
+        <div class="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest mb-2">Dominio juegos</div>
+        <div class="flex justify-between text-[10px] font-bold mb-1.5"><span class="text-primary truncate max-w-[100px]">${S.teamA.name} ${pctA}%</span><span class="text-on-surface">${100-pctA}% ${S.teamB.name}</span></div>
+        <div class="flex gap-1">${bar(pctA,true)}${bar(100-pctA,false)}</div>
+        <div class="flex justify-between text-[9px] text-on-surface-variant mt-1.5"><span>${gA}j</span><span>${gB}j</span></div>
+    </div>
+    <div class="bg-surface-container rounded-3xl p-4">
+        <div class="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest mb-2">Momentum (últimos puntos)</div>
+        <div class="flex justify-between text-[8px] text-on-surface-variant mb-1.5">
+            <span class="flex items-center gap-1"><div class="w-2 h-2 rounded-sm" style="background:#00fd87"></div>${S.teamA.name}</span>
+            <span class="flex items-center gap-1"><div class="w-2 h-2 rounded-sm" style="background:#494847"></div>${S.teamB.name}</span>
+        </div>
+        ${momentumHtml}
+    </div>
+    <div class="bg-surface-container rounded-3xl p-4">
+        <div class="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest mb-3">Totales</div>
+        <div class="grid grid-cols-2 gap-2">
+            ${[['Juegos',totalGames],['Faltas A',Object.values(S.faults.A).reduce((a,b)=>a+b,0)],['Faltas B',Object.values(S.faults.B).reduce((a,b)=>a+b,0)],['Calorías est.',S.calories>0?S.calories+'kcal':'-']].map(([l,v])=>`<div class="bg-surface-container-high rounded-2xl p-3"><div class="text-lg font-black text-on-surface">${v}</div><div class="text-[8px] text-on-surface-variant uppercase">${l}</div></div>`).join('')}
+        </div>
+    </div>
+    <button onclick="shareResult();" class="w-full py-3 rounded-2xl bg-surface-container border border-outline-variant/20 text-on-surface-variant text-[11px] font-black uppercase scale-press flex items-center justify-center gap-2">
+        <span class="material-symbols-outlined text-[14px]">share</span>Compartir resultado por WhatsApp
+    </button>
+    <button onclick="shareQR();" class="w-full py-3 rounded-2xl bg-surface-container border border-primary/20 text-primary text-[11px] font-black uppercase scale-press flex items-center justify-center gap-2">
+        <span class="material-symbols-outlined text-[14px]">qr_code</span>QR para espectadores
+    </button>
+</div>
+${BottomNav('stats')}`;
+};
+
+// ═══════════════════════════════════════════
+// ACTIVITY VIEW
+// ═══════════════════════════════════════════
+const ActivityView=()=>{
+    const icons={game:'military_tech',set:'emoji_events',deuce:'balance',match:'trophy',fault:'warning'};
+    const colors={game:'text-primary',set:'text-tertiary',deuce:'text-error',match:'text-primary',fault:'text-error'};
+    const labels={
+        game:a=>`Juego → ${a.team?S['team'+a.team].name:''} (${a.score.gA}-${a.score.gB})`,
+        set:a=>`Set ${a.set} → ${a.team?S['team'+a.team].name:''}`,
+        deuce:a=>'Deuce',
+        match:a=>`Partido → ${a.team?S['team'+a.team].name:''}`,
+        fault:a=>`Falta — ${a.team?S['team'+a.team].name:''}`
+    };
+    return `
+<header class="px-4 pt-5 pb-3 flex items-center gap-3 flex-shrink-0">
+    <button onclick="S.currentView='home';render();" class="p-2 rounded-xl scale-press"><span class="material-symbols-outlined text-on-surface-variant text-[20px]">arrow_back</span></button>
+    <span class="text-on-surface font-bold text-base">Historial</span>
+    ${S.activityLog.length?`<button onclick="S.activityLog=[];render();" class="ml-auto text-error text-[10px] font-bold uppercase">Limpiar</button>`:''}
+</header>
+<div class="flex-1 scrollable px-4 pb-4">
+    ${!S.activityLog.length?`<div class="text-center py-16 text-on-surface-variant/40"><span class="material-symbols-outlined text-5xl block mb-3">list_alt</span><span class="text-sm">Empieza a jugar para ver el historial</span></div>`
+    :S.activityLog.map((a,i)=>`
+    <div class="flex items-center gap-3 py-2.5 ${i<S.activityLog.length-1?'border-b border-white/5':''}">
+        <div class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center flex-shrink-0">
+            <span class="material-symbols-outlined text-[15px] ${colors[a.type]||'text-on-surface-variant'} filled">${icons[a.type]||'circle'}</span>
+        </div>
+        <div class="flex-1 min-w-0">
+            <div class="text-[11px] font-bold text-on-surface truncate">${(labels[a.type]||(a=>a.type))(a)}</div>
+            <div class="text-[9px] text-on-surface-variant">Set ${a.set} · ${a.time}</div>
+        </div>
+    </div>`).join('')}
+</div>
+${BottomNav('activity')}`;
+};
+
+// ═══════════════════════════════════════════
+// SETTINGS VIEW
+// ═══════════════════════════════════════════
+const SettingsView=()=>`
+<header class="px-4 pt-5 pb-3 flex items-center gap-3 flex-shrink-0">
+    <button onclick="S.currentView='home';render();" class="p-2 rounded-xl scale-press"><span class="material-symbols-outlined text-on-surface-variant text-[20px]">arrow_back</span></button>
+    <span class="text-on-surface font-bold text-base">Ajustes</span>
+</header>
+<div class="flex-1 scrollable px-4 pb-4 flex flex-col gap-3">
+
+    <div class="bg-surface-container rounded-3xl p-4">
+        <div class="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest mb-3">Parejas y jugadores</div>
+        ${['A','B'].map(t=>`
+        <div class="${t==='B'?'border-t border-white/5 pt-3 mt-3':''}">
+            <div class="flex items-center gap-2 mb-2"><div class="w-2 h-2 rounded-full ${t==='A'?'bg-primary':'bg-outline-variant'}"></div><span class="text-[9px] font-bold ${t==='A'?'text-primary':'text-on-surface-variant'} uppercase tracking-wider">Pareja ${t}</span></div>
+            <input type="text" value="${S['team'+t].name}" maxlength="14" placeholder="Nombre pareja ${t}" oninput="S['team${t}'].name=this.value.toUpperCase()||'EQUIPO ${t}';saveState();" class="w-full bg-surface-container-high border border-outline-variant/30 rounded-xl px-3 py-2 text-on-surface text-sm font-bold mb-2">
+            <div class="grid grid-cols-2 gap-2">
+                <input type="text" value="${S['team'+t].playerA||''}" maxlength="16" placeholder="Jugador 1" oninput="S['team${t}'].playerA=this.value;saveState();" class="bg-surface-container-high border border-outline-variant/20 rounded-xl px-3 py-2 text-on-surface-variant text-[11px] font-bold">
+                <input type="text" value="${S['team'+t].playerB||''}" maxlength="16" placeholder="Jugador 2" oninput="S['team${t}'].playerB=this.value;saveState();" class="bg-surface-container-high border border-outline-variant/20 rounded-xl px-3 py-2 text-on-surface-variant text-[11px] font-bold">
+            </div>
+        </div>`).join('')}
+    </div>
+
+    <div class="bg-surface-container rounded-3xl p-4">
+        <div class="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest mb-3">Reglas</div>
+        ${[
+            ['Punto de oro','En deuce: un punto decide','goldenPoint'],
+            ['Superdesempate','3er set a 10 puntos en lugar de set completo','superTiebreak']
+        ].map(([title,sub,key])=>`
+        <div class="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+            <div><div class="text-sm font-bold text-on-surface">${title}</div><div class="text-[9px] text-on-surface-variant">${sub}</div></div>
+            <button onclick="S.${key}=!S.${key};saveState();render();" class="scale-press">
+                ${`<span class="material-symbols-outlined text-[28px] ${S[key]?'text-primary filled':'text-outline'}">${S[key]?'toggle_on':'toggle_off'}</span>`}
+            </button>
+        </div>`).join('')}
+        <div class="flex items-center justify-between pt-2">
+            <div><div class="text-sm font-bold text-on-surface">Quién saca</div><div class="text-[9px] text-on-surface-variant">Saque inicial</div></div>
+            <div class="flex gap-2">
+                ${['A','B'].map(t=>`<button onclick="S.serving='${t}';saveState();render();" class="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase scale-press ${S.serving===t?'bg-primary-container text-on-primary':'bg-surface-container-high text-on-surface-variant'}">${S['team'+t].name.substring(0,3)}</button>`).join('')}
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-surface-container rounded-3xl p-4">
+        <div class="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest mb-3">Audio y pantalla</div>
+        <div class="flex items-center justify-between py-2 border-b border-white/5">
+            <div class="flex items-center gap-3"><span class="material-symbols-outlined text-[18px] text-on-surface-variant filled">${S.soundEnabled?'volume_up':'volume_off'}</span><span class="text-sm font-bold text-on-surface">Sonido</span></div>
+            <button onclick="S.soundEnabled=!S.soundEnabled;saveState();render();" class="scale-press"><span class="material-symbols-outlined text-[28px] ${S.soundEnabled?'text-primary filled':'text-outline'}">${S.soundEnabled?'toggle_on':'toggle_off'}</span></button>
+        </div>
+        <div class="py-2">
+            <div class="flex items-center justify-between mb-2"><div class="flex items-center gap-3"><span class="material-symbols-outlined text-[18px] text-on-surface-variant">brightness_6</span><span class="text-sm font-bold text-on-surface">Brillo</span></div><span class="text-[10px] text-on-surface-variant">${S.brightness}%</span></div>
+            <input type="range" min="20" max="100" value="${S.brightness}" class="w-full" oninput="S.brightness=parseInt(this.value);document.documentElement.style.filter='brightness('+S.brightness/100+')';saveState();">
+        </div>
+    </div>
+
+    <div class="bg-surface-container rounded-3xl p-4">
+        <div class="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest mb-2">Voz</div>
+        <div class="text-[10px] text-on-surface-variant leading-relaxed mb-3">
+            <div class="mb-1.5"><span class="text-primary font-bold">"saque"</span> · <span class="text-primary font-bold">"resto"</span> — punto al que saca / al que resta</div>
+            <div class="mb-1.5"><span class="text-primary font-bold">"punto al saque"</span> · <span class="text-primary font-bold">"punto al resto"</span></div>
+            <div class="mb-1.5"><span class="text-primary font-bold">"ventaja servicio"</span> · <span class="text-primary font-bold">"ventaja resto"</span></div>
+            <div class="mb-1.5"><span class="text-primary font-bold">"punto A"</span> · <span class="text-primary font-bold">"punto B"</span> · <span class="text-primary font-bold">"punto equipo A/B"</span></div>
+            <div class="mb-1.5"><span class="text-primary font-bold">"falta"</span> · <span class="text-primary font-bold">"doble falta"</span> — la doble falta da punto al rival</div>
+            <div><span class="text-primary font-bold">"deshacer"</span> · <span class="text-primary font-bold">"finalizar"</span> · <span class="text-primary font-bold">"nueva partida"</span></div>
+        </div>
+        <button onclick="toggleVoice();" class="w-full py-3 rounded-2xl text-[11px] font-black uppercase scale-press ${S.voiceActive?'bg-error/10 border border-error/30 text-error mic-active':'bg-surface-container-high border border-outline-variant/20 text-on-surface'}">
+            <span class="material-symbols-outlined text-[14px] align-middle mr-1 filled">${S.voiceActive?'mic_off':'mic'}</span>${S.voiceActive?'Desactivar voz':'Activar voz'}
+        </button>
+    </div>
+
+    <div class="bg-surface-container rounded-3xl p-4">
+        <div class="text-[9px] font-bold text-on-surface-variant uppercase tracking-widest mb-3">Compartir</div>
+        <div class="flex flex-col gap-2">
+            <button onclick="shareResult();" class="w-full py-3 rounded-2xl bg-surface-container-high text-on-surface text-[11px] font-black uppercase scale-press flex items-center justify-center gap-2"><span class="material-symbols-outlined text-[14px]">share</span>Compartir resultado</button>
+            <button onclick="shareQR();" class="w-full py-3 rounded-2xl bg-surface-container-high text-on-surface text-[11px] font-black uppercase scale-press flex items-center justify-center gap-2"><span class="material-symbols-outlined text-[14px]">qr_code</span>QR espectadores</button>
+        </div>
+    </div>
+
+    <div class="flex flex-col gap-2">
+        <button onclick="undoPoint();" class="w-full py-3 rounded-2xl bg-surface-container border border-outline-variant/20 text-on-surface text-[11px] font-black uppercase scale-press flex items-center justify-center gap-2"><span class="material-symbols-outlined text-[14px]">undo</span>Deshacer último punto</button>
+        <div class="grid grid-cols-2 gap-2">
+            <button onclick="newMatch();" class="py-3 rounded-2xl bg-primary/10 border border-primary/20 text-primary text-[11px] font-black uppercase scale-press flex items-center justify-center gap-1"><span class="material-symbols-outlined text-[14px]">add</span>Nueva partida</button>
+            <button onclick="endMatch();" class="py-3 rounded-2xl bg-surface-container border border-outline-variant/20 text-on-surface-variant text-[11px] font-black uppercase scale-press flex items-center justify-center gap-1"><span class="material-symbols-outlined text-[14px]">flag</span>Finalizar</button>
+        </div>
+        <button onclick="resetMatch();" class="w-full py-3 rounded-2xl bg-error/10 border border-error/20 text-error text-[11px] font-black uppercase scale-press flex items-center justify-center gap-2"><span class="material-symbols-outlined text-[14px]">restart_alt</span>Reiniciar partido</button>
+    </div>
+</div>
+${BottomNav('settings')}`;
+
+// ═══════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════
+function render(){
+    const app=document.getElementById('app');
+    app.className='watch-frame font-body';
+    switch(S.currentView){
+        case 'home':     app.innerHTML=HomeView(); break;
+        case 'faults':   app.innerHTML=FaultsView(); break;
+        case 'stats':    app.innerHTML=StatsView(); break;
+        case 'activity': app.innerHTML=ActivityView(); break;
+        case 'settings': app.innerHTML=SettingsView(); break;
+        default:         app.innerHTML=HomeView();
+    }
+    if(S.brightness!==100) document.documentElement.style.filter=`brightness(${S.brightness/100})`;
+}
+
+startTimer();
+render();
+</script>
+</body>
+</html>
