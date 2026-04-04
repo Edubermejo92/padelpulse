@@ -1170,7 +1170,7 @@ function shareResult(){
     const winnerText = S.matchWinner ? `\n\n🏆 Ganador: ${S['team'+S.matchWinner].name}` : '';
     const liveUrl = getLiveUrl();
     const text=`🎾 PadelPulse\n\n${nA}${pA?' ('+pA+')':''}\nvs\n${nB}${pB?' ('+pB+')':''}\n\n${setsInfo}${winnerText}\n⏱️ ${formatTime(S.gameTime)}\n\n👁️ Marcador En Vivo:\n${liveUrl}`;
-    if(navigator.share){ navigator.share({title:'PadelPulse — '+nA+' vs '+nB, text, url:liveUrl}).catch(()=>copyToClipboard(text)); }
+    if(navigator.share){ navigator.share({title:'PadelPulse — '+nA+' vs '+nB, text}).catch(()=>copyToClipboard(text)); }
     else copyToClipboard(text);
 }
 
