@@ -1,8 +1,0 @@
-[{
-  "relation": ["delegate_permission/common.handle_all_urls"],
-  "target": {
-    "namespace": "android_app",
-    "package_name": "com.ebldigital.padelpulselive",
-    "sha256_cert_fingerprints": ["REEMPLAZAR_CON_SHA256_DE_PWABUILDER"]
-  }
-}]
