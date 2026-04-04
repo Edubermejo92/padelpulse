@@ -2531,9 +2531,6 @@ const Header=()=>`
         <button onclick="showThemePicker();" class="hidden sm:flex p-2 rounded-xl scale-press bg-surface-container border border-outline-variant/30" title="Tema">
             <span style="font-size:16px;line-height:1;">${T().emoji}</span>
         </button>
-        <button onclick="shareResult();" class="p-2 rounded-xl scale-press bg-surface-container border border-outline-variant/30" title="Compartir">
-            <span class="material-symbols-outlined text-[20px] text-on-surface-variant">share</span>
-        </button>
         <button onclick="S.currentView='settings';render();" class="p-1 sm:p-2 rounded-lg sm:rounded-xl scale-press bg-surface-container border border-outline-variant/30">
             <span class="material-symbols-outlined text-[16px] sm:text-[20px] text-on-surface-variant">settings</span>
         </button>
@@ -2570,7 +2567,7 @@ function showThemePicker(){
 }
 
 const BottomNav=(active)=>`
-<nav class="bg-surface-container-lowest border-t border-white/5 flex justify-center flex-shrink-0 w-full" style="padding-bottom:env(safe-area-inset-bottom,0)">
+<nav class="bg-surface-container-lowest border-t border-white/5 flex justify-center w-full" style="position:fixed;bottom:0;left:0;right:0;z-index:100;padding-bottom:env(safe-area-inset-bottom,0)">
     <div class="dk-nav grid grid-cols-5 gap-0 px-1 py-1 w-full max-w-5xl">
     ${[
         {id:'home',    icon:'scoreboard', label:'Marcador'},
